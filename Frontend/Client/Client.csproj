@@ -29,6 +29,7 @@
     <_ContentIncludedByDefault Remove="Components\Pages\Admin\ManageProducts.razor" />
     <_ContentIncludedByDefault Remove="Components\Pages\CustomerRegister.razor" />
     <_ContentIncludedByDefault Remove="Components\Pages\Customer\CustomerManagePersonalData.razor" />
+    <_ContentIncludedByDefault Remove="Components\Pages\Shop\Shop.razor" />
   </ItemGroup>
 
   <ItemGroup>
@@ -45,6 +46,10 @@
 
   <ItemGroup>
     <UpToDateCheckInput Remove="Components\Pages\Admin\ManageCustomersOrders.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Components\Pages\Shop\Shop.razor" />
   </ItemGroup>
 
 </Project>

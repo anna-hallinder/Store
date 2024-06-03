@@ -1,0 +1,53 @@
+﻿@page "/Shop"
+@rendermode InteractiveServer
+@using Shared.Dtos.Product
+@using Shared.Interfaces.IService
+@inject ICategoryService CategoryService
+@inject IProductService ProductService
+
+
+<h3>Shop</h3>
+
+@if (_products == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var product in _products)
+        {
+            <div class="col-md-4">
+                <div class="card mb-4 box-shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">@product.ProductName</h5>
+                        <p class="card-text">@product.ProductDescription</p>
+
+                        <p class="card-text">@product.CategoryName</p>
+
+                        <p class="card-text"><strong>@product.ProductUnitPrice</strong></p>
+                        <button class="btn btn-primary" @onclick="() => AddToCart(product)">Add to Cart</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private IEnumerable<ReadProductDto>? _products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        _products = await ProductService.GetAllProductsAsync();
+    }
+
+    private void AddToCart(ReadProductDto product)
+    {
+    }
+}
