@@ -25,7 +25,6 @@ public class AuthenticationService : IAuthenticationService
         return false;
     }
 
-    // Lägg till en metod för att hämta kunddetaljer baserat på e-post
     public async Task<ReadCustomerDto> GetCustomerByEmailAsync(string email)
     {
         var httpClient = _httpClientFactory.CreateClient("storeApi");

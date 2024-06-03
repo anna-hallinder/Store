@@ -89,7 +89,6 @@ public static class OrderEndpoints
                 }).ToList()
             };
 
-            // Ensure each OrderItem has the correct OrderId
             order.OrderId = Guid.NewGuid();
             foreach (var item in order.OrderItems)
             {
@@ -98,7 +97,6 @@ public static class OrderEndpoints
 
             var createdOrder = await orderRepository.CreateOrderAsync(order);
 
-            // Add order reference to customer
             var customer = await customerRepository.GetCustomerByIdAsync(order.CustomerId);
             if (customer != null)
             {
