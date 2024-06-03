@@ -1,0 +1,293 @@
+﻿@page "/ManageProducts"
+
+@rendermode InteractiveServer
+
+@using Shared.Dtos.Category
+@using Shared.Dtos.Product
+@using Shared.Interfaces.IService
+@using Microsoft.AspNetCore.Authorization
+@inject ICategoryService CategoryService
+@inject IProductService ProductService
+
+@* @attribute [Authorize(Roles = "ADMIN")] *@
+@* <AuthorizeView>
+    <Authorized> *@
+<h3>Manage Products</h3>
+
+<div class="container mt-4 border p-3">
+
+    <!-- Add New Product Section -->
+    <div class="container mt-4 border p-3">
+        <p class="text-center">
+            <h5>Add New Product</h5>
+        </p>
+
+        <div class="mb-3">
+            <label for="newProductNumber" class="form-label">Article Number</label>
+            <input id="newProductNumber" @bind="_newProductNumber" class="form-control" placeholder="Enter article number" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newProductName" class="form-label">Product Name</label>
+            <input id="newProductName" @bind="_newProductName" class="form-control" placeholder="Enter product name" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newProductDescription" class="form-label">Product Description</label>
+            <input id="newProductDescription" @bind="_newProductDescription" class="form-control" placeholder="Enter product description" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newProductPrice" class="form-label">Product Price</label>
+            <input id="newProductPrice" type="number" @bind="_newProductPrice" class="form-control" placeholder="Enter product price" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newProductCategoryId" class="form-label">Product Category</label>
+            <select id="newProductCategoryId" class="form-select" @bind="_newProductCategoryId">
+                <option value="">Select a category</option>
+                @if (_categories != null)
+                {
+                    @foreach (var category in _categories)
+                    {
+                        <option value="@category.CategoryId">@category.CategoryName</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="newProductStatus" class="form-label">Product Status</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="statusAvailable" value="Available" @onchange="@(e => UpdateNewProductStatus("Available"))" checked="@(_newProductStatus == "Available")">
+                <label class="form-check-label" for="statusAvailable">Available</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="statusUnavailable" value="Unavailable" @onchange="@(e => UpdateNewProductStatus("Unavailable"))" checked="@(_newProductStatus == "Unavailable")">
+                <label class="form-check-label" for="statusUnavailable">Unavailable</label>
+            </div>
+        </div>
+
+        <button class="btn btn-primary mt-2" @onclick="AddNewProduct">Add Product</button>
+    </div>
+
+    <!-- Update/Delete Product Section -->
+    <div class="container mt-4 border p-3">
+        <p class="text-center">
+            <h5>Update Or Delete Product</h5>
+        </p>
+
+        <div class="mb-3 position-relative">
+            <label for="searchProduct" class="form-label">Search Product</label>
+            <input id="searchProduct" type="text" class="form-control" @bind="_searchTerm" @oninput="FilterProducts" placeholder="Enter product name or article number" />
+            <div class="dropdown-content">
+                <select class="form-select w-100 mt-1" size="5" @onchange="OnProductSelected">
+                    @if (_filteredProducts != null)
+                    {
+                        @foreach (var product in _filteredProducts)
+                        {
+                            <option value="@product.ProductId">@product.ProductName (@product.ProductArticleNumber)</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="editProductNumber" class="form-label">Article Number</label>
+            <input id="editProductNumber" @bind="_editProductNumber" class="form-control" placeholder="Enter article number" />
+        </div>
+
+        <div class="mb-3">
+            <label for="editProductName" class="form-label">Product Name</label>
+            <input id="editProductName" @bind="_editProductName" class="form-control" placeholder="Enter product name" />
+        </div>
+
+        <div class="mb-3">
+            <label for="editProductDescription" class="form-label">Product Description</label>
+            <input id="editProductDescription" @bind="_editProductDescription" class="form-control" placeholder="Enter product description" />
+        </div>
+
+        <div class="mb-3">
+            <label for="editProductPrice" class="form-label">Product Price</label>
+            <input id="editProductPrice" type="number" @bind="_editProductPrice" class="form-control" placeholder="Enter product price" />
+        </div>
+
+        <div class="mb-3">
+            <label for="editProductCategoryId" class="form-label">Product Category</label>
+            <select id="editProductCategoryId" class="form-select" @bind="_editProductCategoryId">
+                <option value="">Select a category</option>
+                @if (_categories != null)
+                {
+                    @foreach (var category in _categories)
+                    {
+                        <option value="@category.CategoryId">@category.CategoryName</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="editProductStatus" class="form-label">Product Status</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="editStatusAvailable" value="Available" @onchange="@(e => UpdateProductStatus("Available"))" checked="@(_editProductStatus == "Available")">
+                <label class="form-check-label" for="editStatusAvailable">Available</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="editStatusUnavailable" value="Unavailable" @onchange="@(e => UpdateProductStatus("Unavailable"))" checked="@(_editProductStatus == "Unavailable")">
+                <label class="form-check-label" for="editStatusUnavailable">Unavailable</label>
+            </div>
+        </div>
+
+        <button class="btn btn-success mt-2" @onclick="UpdateProduct" disabled="@(string.IsNullOrEmpty(_selectedProductId.ToString()))">Update Product</button>
+        <button class="btn btn-danger mt-2 ms-2" @onclick="DeleteProduct" disabled="@(string.IsNullOrEmpty(_selectedProductId.ToString()))">Delete Product</button>
+    </div>
+
+</div>
+
+@*     </Authorized>
+</AuthorizeView> *@
+
+@code {
+    private IEnumerable<ReadCategoryDto> _categories = new List<ReadCategoryDto>();
+    private IEnumerable<ReadProductDto>? _products = new List<ReadProductDto>();
+    private IEnumerable<ReadProductDto>? _filteredProducts = new List<ReadProductDto>();
+
+    private string _newProductNumber = string.Empty;
+    private string _newProductName = string.Empty;
+    private string _newProductDescription = string.Empty;
+    private decimal _newProductPrice;
+    private string _newProductCategoryId = string.Empty;
+    private string _newProductStatus = "Available";
+    private Guid _selectedProductId;
+    private string _editProductNumber = string.Empty;
+    private string _editProductName = string.Empty;
+    private string _editProductDescription = string.Empty;
+    private decimal _editProductPrice;
+    private string _editProductCategoryId = string.Empty;
+    private string _editProductStatus = "Available";
+    private string _searchTerm = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+        await LoadProducts();
+    }
+
+    private async Task LoadCategories()
+    {
+        _categories = await CategoryService.GetAllCategoriesAsync();
+    }
+
+    private async Task LoadProducts()
+    {
+        _products = await ProductService.GetAllProductsAsync();
+        _filteredProducts = _products;
+    }
+
+    private void UpdateNewProductStatus(string status)
+    {
+        _newProductStatus = status;
+    }
+
+    private async Task AddNewProduct()
+    {
+        if (!string.IsNullOrWhiteSpace(_newProductNumber) && !string.IsNullOrWhiteSpace(_newProductName) && !string.IsNullOrWhiteSpace(_newProductDescription) && _newProductPrice > 0 && !string.IsNullOrWhiteSpace(_newProductCategoryId) && !string.IsNullOrWhiteSpace(_newProductStatus))
+        {
+            var productCreateDto = new CreateProductDto
+                {
+                    ProductArticleNumber = _newProductNumber,
+                    ProductName = _newProductName,
+                    ProductDescription = _newProductDescription,
+                    ProductUnitPrice = _newProductPrice,
+                    CategoryId = Guid.Parse(_newProductCategoryId),
+                    Status = _newProductStatus
+                };
+
+            await ProductService.CreateProductAsync(productCreateDto);
+            ResetNewProductFields();
+            await LoadProducts();
+        }
+    }
+
+    private void ResetNewProductFields()
+    {
+        _newProductNumber = string.Empty;
+        _newProductName = string.Empty;
+        _newProductDescription = string.Empty;
+        _newProductPrice = 0;
+        _newProductCategoryId = string.Empty;
+        _newProductStatus = "Available";
+    }
+
+    private void OnProductSelected(ChangeEventArgs e)
+    {
+        _selectedProductId = Guid.Parse(e.Value.ToString());
+        var product = _products.FirstOrDefault(p => p.ProductId == _selectedProductId);
+        if (product != null)
+        {
+            _editProductNumber = product.ProductArticleNumber;
+            _editProductName = product.ProductName;
+            _editProductDescription = product.ProductDescription;
+            _editProductPrice = product.ProductUnitPrice;
+            _editProductCategoryId = product.CategoryId.ToString();
+            _editProductStatus = product.Status;
+        }
+        else
+        {
+            ResetProductFields();
+        }
+    }
+
+    private void FilterProducts(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value.ToString();
+        _filteredProducts = _products.Where(p => p.ProductName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) || p.ProductArticleNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private void UpdateProductStatus(string status)
+    {
+        _editProductStatus = status;
+    }
+
+    private async Task UpdateProduct()
+    {
+        if (_selectedProductId != Guid.Empty && !string.IsNullOrWhiteSpace(_editProductNumber) && !string.IsNullOrWhiteSpace(_editProductName) && !string.IsNullOrWhiteSpace(_editProductDescription) && _editProductPrice > 0 && !string.IsNullOrWhiteSpace(_editProductCategoryId) && !string.IsNullOrWhiteSpace(_editProductStatus))
+        {
+            var productUpdateDto = new UpdateProductDto
+                {
+                    ProductArticleNumber = _editProductNumber,
+                    ProductName = _editProductName,
+                    ProductDescription = _editProductDescription,
+                    ProductUnitPrice = _editProductPrice,
+                    CategoryId = Guid.Parse(_editProductCategoryId),
+                    Status = _editProductStatus
+                };
+
+            await ProductService.UpdateProductAsync(_selectedProductId, productUpdateDto);
+            ResetProductFields();
+            await LoadProducts();
+        }
+    }
+
+    private async Task DeleteProduct()
+    {
+        if (_selectedProductId != Guid.Empty)
+        {
+            await ProductService.DeleteProductAsync(_selectedProductId);
+            ResetProductFields();
+            await LoadProducts();
+        }
+    }
+
+    private void ResetProductFields()
+    {
+        _editProductNumber = string.Empty;
+        _editProductName = string.Empty;
+        _editProductDescription = string.Empty;
+        _editProductPrice = 0;
+        _editProductCategoryId = string.Empty;
+        _editProductStatus = "Available";
+        _selectedProductId = Guid.Empty;
+    }
+}

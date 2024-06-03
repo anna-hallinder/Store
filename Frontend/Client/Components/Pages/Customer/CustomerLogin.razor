@@ -1,0 +1,123 @@
+﻿@page "/CustomerLogin"
+
+@rendermode InteractiveServer
+@using Shared.Dtos.Customer
+@using Shared.Interfaces.IService
+@inject IAuthenticationService AuthenticationService
+@inject ICustomerService CustomerService
+@inject NavigationManager Navigation
+
+<h3>Login</h3>
+
+<div class="container mt-4 border p-3">
+    <div class="container mt-4 border p-3">
+        <p class="text-center">
+            <h5>Login</h5>
+        </p>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input id="email" @bind="_email" class="form-control" placeholder="Enter email" type="email" />
+        </div>
+
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input id="password" @bind="_password" class="form-control" placeholder="Enter password" type="password" />
+        </div>
+
+        <button class="btn btn-primary mt-2" @onclick="Login">Login</button>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal @((showSuccessModal ? "d-block" : "d-none"))" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Login Successful</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Welcome, @fullName!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" @onclick="NavigateToHome">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal @((showErrorModal ? "d-block" : "d-none"))" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Login Failed</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Invalid email or password.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private bool showSuccessModal = false;
+    private bool showErrorModal = false;
+    private string fullName = string.Empty;
+
+    private async Task Login()
+    {
+        Console.WriteLine("Login button clicked");
+        var loginDto = new LoginCustomerDto
+            {
+                Email = _email,
+                Password = _password
+            };
+
+        var isAuthenticated = await AuthenticationService.LoginAsync(loginDto);
+
+        Console.WriteLine($"Authentication result: {isAuthenticated}");
+
+        if (isAuthenticated)
+        {
+            var customer = await CustomerService.GetCustomerByEmailAsync(_email);
+            if (customer != null)
+            {
+                fullName = $"{customer.FirstName} {customer.LastName}";
+                showSuccessModal = true;
+                Console.WriteLine("Login successful, showing success modal");
+            }
+            else
+            {
+                showErrorModal = true;
+                Console.WriteLine("Customer not found, showing error modal");
+            }
+        }
+        else
+        {
+            showErrorModal = true;
+            Console.WriteLine("Invalid credentials, showing error modal");
+        }
+
+        StateHasChanged();
+    }
+
+    private void NavigateToHome()
+    {
+        showSuccessModal = false;
+        Navigation.NavigateTo("/");
+    }
+
+    private void CloseModal()
+    {
+        showSuccessModal = false;
+        showErrorModal = false;
+    }
+}

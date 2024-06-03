@@ -1,0 +1,175 @@
+﻿@page "/CustomerRegister"
+@rendermode InteractiveServer
+
+@using Shared.Dtos.Customer
+@using Shared.Interfaces.IService
+@inject ICustomerService CustomerService
+
+<h3>Add New Customer</h3>
+
+<div class="container mt-4 border p-3">
+    <div class="container mt-4 border p-3">
+        <p class="text-center">
+            <h5>Add New Customer</h5>
+        </p>
+
+        <div class="mb-3">
+            <label for="newCustomerFirstName" class="form-label">First Name</label>
+            <input id="newCustomerFirstName" @bind="_newCustomerFirstName" class="form-control" placeholder="Enter first name" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newCustomerLastName" class="form-label">Last Name</label>
+            <input id="newCustomerLastName" @bind="_newCustomerLastName" class="form-control" placeholder="Enter last name" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newCustomerEmail" class="form-label">Email</label>
+            <input id="newCustomerEmail" @bind="_newCustomerEmail" class="form-control" placeholder="Enter email" type="email" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newCustomerPassword" class="form-label">Password</label>
+            <input id="newCustomerPassword" @bind="_newCustomerPassword" class="form-control" placeholder="Enter password" type="password" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newCustomerPhone" class="form-label">Phone</label>
+            <input id="newCustomerPhone" @bind="_newCustomerPhone" class="form-control" placeholder="Enter phone number" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newCustomerAddress" class="form-label">Address</label>
+            <input id="newCustomerAddress" @bind="_newCustomerAddress" class="form-control" placeholder="Enter address" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newCustomerPostalCode" class="form-label">Postal Code</label>
+            <input id="newCustomerPostalCode" @bind="_newCustomerPostalCode" class="form-control" placeholder="Enter postal code" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newCustomerCity" class="form-label">City</label>
+            <input id="newCustomerCity" @bind="_newCustomerCity" class="form-control" placeholder="Enter city" />
+        </div>
+
+        <div class="mb-3">
+            <label for="newCustomerCountry" class="form-label">Country</label>
+            <input id="newCustomerCountry" @bind="_newCustomerCountry" class="form-control" placeholder="Enter country" />
+        </div>
+
+        <button class="btn btn-primary mt-2" @onclick="AddNewCustomer">Add Customer</button>
+    </div>
+</div>
+
+<!-- Success Modal -->
+@if (showSuccessModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Success</h5>
+                    <button type="button" class="btn-close" @onclick="HideSuccessModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Successfully added!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Error Modal -->
+@if (showErrorModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Error</h5>
+                    <button type="button" class="btn-close" @onclick="HideErrorModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>An error occurred while adding the customer. Please try again.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _newCustomerFirstName = string.Empty;
+    private string _newCustomerLastName = string.Empty;
+    private string _newCustomerEmail = string.Empty;
+    private string _newCustomerPassword = string.Empty;
+    private string _newCustomerPhone = string.Empty;
+    private string _newCustomerAddress = string.Empty;
+    private string _newCustomerPostalCode = string.Empty;
+    private string _newCustomerCity = string.Empty;
+    private string _newCustomerCountry = string.Empty;
+
+    private bool showSuccessModal = false;
+    private bool showErrorModal = false;
+
+    private async Task AddNewCustomer()
+    {
+        if (!string.IsNullOrWhiteSpace(_newCustomerFirstName) &&
+            !string.IsNullOrWhiteSpace(_newCustomerLastName) &&
+            !string.IsNullOrWhiteSpace(_newCustomerEmail) &&
+            !string.IsNullOrWhiteSpace(_newCustomerPassword) &&
+            !string.IsNullOrWhiteSpace(_newCustomerPhone) &&
+            !string.IsNullOrWhiteSpace(_newCustomerAddress) &&
+            !string.IsNullOrWhiteSpace(_newCustomerPostalCode) &&
+            !string.IsNullOrWhiteSpace(_newCustomerCity) &&
+            !string.IsNullOrWhiteSpace(_newCustomerCountry))
+        {
+            var customerCreateDto = new CreateCustomerDto
+                {
+                    FirstName = _newCustomerFirstName,
+                    LastName = _newCustomerLastName,
+                    Email = _newCustomerEmail,
+                    Password = _newCustomerPassword,
+                    Phone = _newCustomerPhone,
+                    Address = _newCustomerAddress,
+                    PostalCode = _newCustomerPostalCode,
+                    City = _newCustomerCity,
+                    Country = _newCustomerCountry
+                };
+
+            try
+            {
+                await CustomerService.CreateCustomerAsync(customerCreateDto);
+                ResetNewCustomerFields();
+                showSuccessModal = true;
+            }
+            catch
+            {
+                showErrorModal = true;
+            }
+        }
+    }
+
+    private void ResetNewCustomerFields()
+    {
+        _newCustomerFirstName = string.Empty;
+        _newCustomerLastName = string.Empty;
+        _newCustomerEmail = string.Empty;
+        _newCustomerPassword = string.Empty;
+        _newCustomerPhone = string.Empty;
+        _newCustomerAddress = string.Empty;
+        _newCustomerPostalCode = string.Empty;
+        _newCustomerCity = string.Empty;
+        _newCustomerCountry = string.Empty;
+    }
+
+    private void HideSuccessModal()
+    {
+        showSuccessModal = false;
+    }
+
+    private void HideErrorModal()
+    {
+        showErrorModal = false;
+    }
+}

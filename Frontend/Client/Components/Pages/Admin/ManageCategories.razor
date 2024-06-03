@@ -1,0 +1,243 @@
+﻿@page "/ManageCategories"
+@rendermode InteractiveServer
+@using Shared.Interfaces.IService
+@using Microsoft.AspNetCore.Authorization
+@using Shared.Dtos.Category
+@inject ICategoryService CategoryService
+
+@* @attribute [Authorize(Roles = "ADMIN")] *@
+@* <AuthorizeView>
+    <Authorized> *@
+        <h3>Manage Categories</h3>
+
+        <!-- Category -->
+        <div class="container mt-4 border p-3">
+            <!-- Add Category Section -->
+            <div class="container mt-4 border p-3">
+                <p class="text-center">
+                    <h5>Add New Category</h5>
+                </p>
+
+                <div class="mb-3">
+                    <label for="newCategoryName" class="form-label">New Category Name</label>
+                    <input id="newCategoryName" @bind="_newCategoryName" class="form-control" placeholder="Enter new category name" />
+                    <button class="btn btn-primary mt-2" @onclick="AddCategory">Add Category</button>
+                </div>
+            </div>
+
+            <!-- Update/Delete Category Section -->
+            <div class="container mt-4 border p-3">
+                <p class="text-center">
+                    <h5>Update Or Delete Category</h5>
+                </p>
+
+                <div class="mb-3">
+                    <label for="selectedCategory" class="form-label">Select Category</label>
+                    <select id="selectedCategory" class="form-select" @onchange="OnCategorySelected">
+                        <option value="">Select a category</option>
+                        @if (_categories != null)
+                        {
+                            @foreach (var category in _categories)
+                            {
+                                <option value="@category.CategoryId">@category.CategoryName</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="editCategoryName" class="form-label">Edit Category Name</label>
+                    <input id="editCategoryName" @bind="_editCategoryName" class="form-control" placeholder="Enter new category name" />
+                </div>
+
+                <button class="btn btn-success mt-2" @onclick="UpdateCategory" disabled="@(!_selectedCategoryId.HasValue)">Update Category</button>
+                <button class="btn btn-danger mt-2 ms-2" @onclick="DeleteCategory" disabled="@(!_selectedCategoryId.HasValue)">Delete Category</button>
+            </div>
+        </div>
+
+        <!-- Modal For Add Success -->
+        <div class="modal @(_addModalClass)" tabindex="-1" style="display:@_addModalDisplay;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Success</h5>
+                        <button type="button" class="btn-close" @onclick="HideAddModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Successfully added!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal For Update Success -->
+        <div class="modal @(_updateModalClass)" tabindex="-1" style="display:@_updateModalDisplay;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Success</h5>
+                        <button type="button" class="btn-close" @onclick="HideUpdateModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Successfully updated!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal For Delete Success -->
+        <div class="modal @(_deleteModalClass)" tabindex="-1" style="display:@_deleteModalDisplay;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Success</h5>
+                        <button type="button" class="btn-close" @onclick="HideDeleteModal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Successfully deleted!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+@*     </Authorized>
+</AuthorizeView> *@
+
+@code {
+    private IEnumerable<ReadCategoryDto> _categories = new List<ReadCategoryDto>();
+    private string _newCategoryName = string.Empty;
+    private string _editCategoryName = string.Empty;
+    private Guid? _selectedCategoryId;
+    private string _addModalClass = "fade";
+    private string _addModalDisplay = "none";
+    private string _updateModalClass = "fade";
+    private string _updateModalDisplay = "none";
+    private string _deleteModalClass = "fade";
+    private string _deleteModalDisplay = "none";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        _categories = await CategoryService.GetAllCategoriesAsync();
+    }
+
+    private async Task AddCategory()
+    {
+        if (!string.IsNullOrWhiteSpace(_newCategoryName))
+        {
+            await CategoryService.CreateCategoryAsync(new CreateCategoryDto() { CategoryName = _newCategoryName });
+            _newCategoryName = string.Empty;
+            await LoadCategories();
+            ShowAddModal();
+
+            await Task.Delay(3000);
+            HideAddModal();
+        }
+    }
+
+    private async Task UpdateCategory()
+    {
+        if (_selectedCategoryId.HasValue && !string.IsNullOrWhiteSpace(_editCategoryName))
+        {
+            await CategoryService.UpdateCategoryAsync(_selectedCategoryId.Value, new UpdateCategoryDto() { CategoryName = _editCategoryName });
+            _editCategoryName = string.Empty;
+            _selectedCategoryId = null;
+            await LoadCategories();
+            ShowUpdateModal();
+
+            await Task.Delay(3000);
+            HideUpdateModal();
+            ResetCategorySelection();
+        }
+    }
+
+    private async Task DeleteCategory()
+    {
+        if (_selectedCategoryId.HasValue)
+        {
+            await CategoryService.DeleteCategoryAsync(_selectedCategoryId.Value);
+            _editCategoryName = string.Empty;
+            _selectedCategoryId = null;
+            await LoadCategories();
+            ShowDeleteModal();
+
+            await Task.Delay(3000);
+            HideDeleteModal();
+            ResetCategorySelection();
+        }
+    }
+
+    private void ResetCategorySelection()
+    {
+        _selectedCategoryId = null;
+        _editCategoryName = string.Empty;
+        StateHasChanged();
+    }
+
+    private void OnCategorySelected(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out Guid categoryId))
+        {
+            _selectedCategoryId = categoryId;
+            var category = _categories.FirstOrDefault(c => c.CategoryId == _selectedCategoryId);
+            if (category != null)
+            {
+                _editCategoryName = category.CategoryName;
+            }
+            else
+            {
+                _editCategoryName = string.Empty;
+            }
+        }
+        else
+        {
+            _selectedCategoryId = null;
+            _editCategoryName = string.Empty;
+        }
+    }
+
+    private void ShowAddModal()
+    {
+        _addModalClass = "show";
+        _addModalDisplay = "block";
+        StateHasChanged();
+    }
+
+    private void HideAddModal()
+    {
+        _addModalClass = "fade";
+        _addModalDisplay = "none";
+        StateHasChanged();
+    }
+
+    private void ShowUpdateModal()
+    {
+        _updateModalClass = "show";
+        _updateModalDisplay = "block";
+        StateHasChanged();
+    }
+
+    private void HideUpdateModal()
+    {
+        _updateModalClass = "fade";
+        _updateModalDisplay = "none";
+        StateHasChanged();
+    }
+
+    private void ShowDeleteModal()
+    {
+        _deleteModalClass = "show";
+        _deleteModalDisplay = "block";
+        StateHasChanged();
+    }
+
+    private void HideDeleteModal()
+    {
+        _deleteModalClass = "fade";
+        _deleteModalDisplay = "none";
+        StateHasChanged();
+    }
+}

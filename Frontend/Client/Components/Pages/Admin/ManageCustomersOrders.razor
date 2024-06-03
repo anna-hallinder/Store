@@ -1,0 +1,144 @@
+﻿@page "/ManageCustomersOrders"
+@rendermode InteractiveServer
+@using Shared.Dtos.Customer
+@using Shared.Dtos.Order
+@using Shared.Interfaces.IService
+@inject ICustomerService CustomerService
+@inject IOrderService OrderService
+
+@* @attribute [Authorize(Roles = "ADMIN")] *@
+@* <AuthorizeView>
+    <Authorized> *@
+<h3>Manage Customers' Orders</h3>
+
+<!-- Sök efter användare via e-post -->
+<div class="container mt-4 border p-3">
+    <h5>Search User by Email</h5>
+    <div class="mb-3">
+        <label for="userEmailSearch" class="form-label">Email Address</label>
+        <input id="userEmailSearch" type="text" class="form-control" @bind="searchEmail" @oninput="FilterUsers" placeholder="Enter user email" />
+    </div>
+</div>
+
+<!-- Lista alla användare -->
+<div class="container mt-4 border p-3">
+    <h5>All Users</h5>
+    <ul class="list-group">
+        @if (filteredUsers != null && filteredUsers.Any())
+        {
+            @foreach (var user in filteredUsers)
+            {
+                <li class="list-group-item">
+                    <div>
+                        <strong>@user.FirstName @user.LastName</strong> (@user.Email)
+                        <button class="btn btn-info btn-sm float-end" @onclick="() => LoadUserOrders(user.CustomerId)">View Orders</button>
+                    </div>
+                    @if (user.CustomerId == selectedUserId)
+                    {
+                        <div class="mt-2">
+                            <h6>Orders:</h6>
+                            @if (selectedUserOrders != null && selectedUserOrders.Any())
+                            {
+                                <ul class="list-group">
+                                    @foreach (var order in selectedUserOrders)
+                                    {
+                                        <li class="list-group-item">
+                                            <div>
+                                                Order #: @order.OrderId
+                                                <button class="btn btn-link" @onclick="() => ToggleOrderDetails(order.OrderId)">
+                                                    @(expandedOrders.Contains(order.OrderId) ? "Hide Items" : "Show Items")
+                                                </button>
+                                            </div>
+                                            @if (expandedOrders.Contains(order.OrderId))
+                                            {
+                                                <ul>
+                                                    @foreach (var item in order.OrderItems)
+                                                    {
+                                                        <li>@item.ProductName - $@item.UnitPrice (Qty: @item.Quantity)</li>
+                                                    }
+                                                </ul>
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <p>No orders found for this user.</p>
+                            }
+                        </div>
+                    }
+                </li>
+            }
+        }
+        else
+        {
+            <li class="list-group-item">
+                <div>
+                    No users found.
+                </div>
+            </li>
+        }
+    </ul>
+</div>
+@*     </Authorized>
+</AuthorizeView> *@
+
+@code {
+    private string searchEmail = string.Empty;
+    private IEnumerable<ReadCustomerDto> users = new List<ReadCustomerDto>();
+    private IEnumerable<ReadCustomerDto> filteredUsers = new List<ReadCustomerDto>();
+    private IEnumerable<ReadOrderDto> selectedUserOrders = new List<ReadOrderDto>();
+    private Guid selectedUserId;
+    private HashSet<Guid> expandedOrders = new HashSet<Guid>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllUsers();
+    }
+
+    private async Task LoadAllUsers()
+    {
+        users = await CustomerService.GetAllCustomersAsync();
+        filteredUsers = users; // Initialize the filtered list with all users
+    }
+
+    private void FilterUsers(ChangeEventArgs e)
+    {
+        searchEmail = e.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(searchEmail))
+        {
+            filteredUsers = users.Where(user => user.Email.Contains(searchEmail, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        else
+        {
+            filteredUsers = users;
+        }
+    }
+
+    private async Task LoadUserOrders(Guid userId)
+    {
+        selectedUserId = userId;
+        try
+        {
+            selectedUserOrders = await OrderService.GetOrdersByCustomerIdAsync(userId) ?? new List<ReadOrderDto>();
+        }
+        catch
+        {
+            selectedUserOrders = new List<ReadOrderDto>();
+        }
+    }
+
+    private void ToggleOrderDetails(Guid orderId)
+    {
+        if (expandedOrders.Contains(orderId))
+        {
+            expandedOrders.Remove(orderId);
+        }
+        else
+        {
+            expandedOrders.Add(orderId);
+        }
+    }
+
+}

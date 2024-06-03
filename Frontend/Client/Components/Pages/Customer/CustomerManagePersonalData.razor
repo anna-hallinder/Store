@@ -1,0 +1,300 @@
+﻿@page "/CustomerManagePersonalData"
+@rendermode InteractiveServer
+
+@using Shared.Dtos.Customer
+@using Shared.Interfaces.IService
+@inject ICustomerService CustomerService
+
+<h3>Update or Delete Customer</h3>
+
+<div class="container mt-4 border p-3">
+    <p class="text-center">
+        <h5>Update Or Delete Customer</h5>
+    </p>
+
+    <div class="mb-3 position-relative">
+        <label for="searchCustomer" class="form-label">Search Customer</label>
+        <input id="searchCustomer" type="text" class="form-control" @bind="_searchTerm" @oninput="FilterCustomers" placeholder="Enter customer name or email" />
+        <div class="dropdown-content">
+            <select class="form-select w-100 mt-1" size="5" @onchange="OnCustomerSelected">
+                @if (_filteredCustomers != null)
+                {
+                    @foreach (var customer in _filteredCustomers)
+                    {
+                        <option value="@customer.CustomerId">@customer.FirstName @customer.LastName (@customer.Email)</option>
+                    }
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerFirstName" class="form-label">First Name</label>
+        <input id="editCustomerFirstName" @bind="_editCustomerFirstName" class="form-control" placeholder="Enter first name" />
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerLastName" class="form-label">Last Name</label>
+        <input id="editCustomerLastName" @bind="_editCustomerLastName" class="form-control" placeholder="Enter last name" />
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerEmail" class="form-label">Email</label>
+        <input id="editCustomerEmail" @bind="_editCustomerEmail" class="form-control" placeholder="Enter email" type="email" />
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerPassword" class="form-label">Password</label>
+        <input id="editCustomerPassword" @bind="_editCustomerPassword" class="form-control" placeholder="Enter password" type="password" />
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerPhone" class="form-label">Phone</label>
+        <input id="editCustomerPhone" @bind="_editCustomerPhone" class="form-control" placeholder="Enter phone number" />
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerAddress" class="form-label">Address</label>
+        <input id="editCustomerAddress" @bind="_editCustomerAddress" class="form-control" placeholder="Enter address" />
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerPostalCode" class="form-label">Postal Code</label>
+        <input id="editCustomerPostalCode" @bind="_editCustomerPostalCode" class="form-control" placeholder="Enter postal code" />
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerCity" class="form-label">City</label>
+        <input id="editCustomerCity" @bind="_editCustomerCity" class="form-control" placeholder="Enter city" />
+    </div>
+
+    <div class="mb-3">
+        <label for="editCustomerCountry" class="form-label">Country</label>
+        <input id="editCustomerCountry" @bind="_editCustomerCountry" class="form-control" placeholder="Enter country" />
+    </div>
+
+    <button class="btn btn-success mt-2" @onclick="UpdateCustomer" disabled="@(string.IsNullOrEmpty(_selectedCustomerId.ToString()))">Update Customer</button>
+    <button class="btn btn-danger mt-2 ms-2" @onclick="DeleteCustomer" disabled="@(string.IsNullOrEmpty(_selectedCustomerId.ToString()))">Delete Customer</button>
+</div>
+
+
+@if (showSuccessModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Success</h5>
+                    <button type="button" class="btn-close" @onclick="HideSuccessModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Successfully deleted!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Success Modal för delete -->
+@if (showDeleteSuccessModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Success</h5>
+                    <button type="button" class="btn-close" @onclick="HideDeleteSuccessModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Successfully deleted!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+<!-- Error Modal -->
+@if (showErrorModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Error</h5>
+                    <button type="button" class="btn-close" @onclick="HideErrorModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>An error occurred. Please try again.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<ReadCustomerDto> _customers = new List<ReadCustomerDto>();
+    private IEnumerable<ReadCustomerDto>? _filteredCustomers = new List<ReadCustomerDto>();
+
+    private Guid _selectedCustomerId;
+    private string _editCustomerFirstName = string.Empty;
+    private string _editCustomerLastName = string.Empty;
+    private string _editCustomerEmail = string.Empty;
+    private string _editCustomerPassword = string.Empty;
+    private string _editCustomerPhone = string.Empty;
+    private string _editCustomerAddress = string.Empty;
+    private string _editCustomerPostalCode = string.Empty;
+    private string _editCustomerCity = string.Empty;
+    private string _editCustomerCountry = string.Empty;
+    private string _searchTerm = string.Empty;
+
+    private bool showSuccessModal = false;
+    private bool showDeleteSuccessModal = false;
+    private bool showErrorModal = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomers();
+    }
+
+    private async Task LoadCustomers()
+    {
+        _customers = await CustomerService.GetAllCustomersAsync();
+        _filteredCustomers = _customers;
+    }
+
+    private void OnCustomerSelected(ChangeEventArgs e)
+    {
+        _selectedCustomerId = Guid.Parse(e.Value.ToString());
+        var customer = _customers.FirstOrDefault(c => c.CustomerId == _selectedCustomerId);
+        if (customer != null)
+        {
+            _editCustomerFirstName = customer.FirstName;
+            _editCustomerLastName = customer.LastName;
+            _editCustomerEmail = customer.Email;
+            _editCustomerPassword = customer.Password;
+            _editCustomerPhone = customer.Phone;
+            _editCustomerAddress = customer.Address;
+            _editCustomerPostalCode = customer.PostalCode;
+            _editCustomerCity = customer.City;
+            _editCustomerCountry = customer.Country;
+        }
+        else
+        {
+            ResetCustomerFields();
+        }
+    }
+
+    private void FilterCustomers(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value.ToString();
+        _filteredCustomers = _customers.Where(c => c.FirstName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) || c.LastName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) || c.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private async Task UpdateCustomer()
+    {
+        if (_selectedCustomerId != Guid.Empty &&
+            !string.IsNullOrWhiteSpace(_editCustomerFirstName) &&
+            !string.IsNullOrWhiteSpace(_editCustomerLastName) &&
+            !string.IsNullOrWhiteSpace(_editCustomerEmail) &&
+            !string.IsNullOrWhiteSpace(_editCustomerPassword) &&
+            !string.IsNullOrWhiteSpace(_editCustomerPhone) &&
+            !string.IsNullOrWhiteSpace(_editCustomerAddress) &&
+            !string.IsNullOrWhiteSpace(_editCustomerPostalCode) &&
+            !string.IsNullOrWhiteSpace(_editCustomerCity) &&
+            !string.IsNullOrWhiteSpace(_editCustomerCountry))
+        {
+            var customerUpdateDto = new UpdateCustomerDto
+                {
+                    FirstName = _editCustomerFirstName,
+                    LastName = _editCustomerLastName,
+                    Email = _editCustomerEmail,
+                    Password = _editCustomerPassword,
+                    Phone = _editCustomerPhone,
+                    Address = _editCustomerAddress,
+                    PostalCode = _editCustomerPostalCode,
+                    City = _editCustomerCity,
+                    Country = _editCustomerCountry
+                };
+
+            try
+            {
+                await CustomerService.UpdateCustomerAsync(_selectedCustomerId, customerUpdateDto);
+                ResetCustomerFields();
+                await LoadCustomers();
+                ShowSuccessModal();
+            }
+            catch
+            {
+                ShowErrorModal();
+            }
+        }
+    }
+
+    private async Task DeleteCustomer()
+    {
+        if (_selectedCustomerId != Guid.Empty)
+        {
+            try
+            {
+                await CustomerService.DeleteCustomerAsync(_selectedCustomerId);
+                ResetCustomerFields();
+                await LoadCustomers();
+                ShowSuccessModal();
+            }
+            catch
+            {
+                ShowErrorModal();
+            }
+        }
+    }
+
+    private void ResetCustomerFields()
+    {
+        _editCustomerFirstName = string.Empty;
+        _editCustomerLastName = string.Empty;
+        _editCustomerEmail = string.Empty;
+        _editCustomerPassword = string.Empty;
+        _editCustomerPhone = string.Empty;
+        _editCustomerAddress = string.Empty;
+        _editCustomerPostalCode = string.Empty;
+        _editCustomerCity = string.Empty;
+        _editCustomerCountry = string.Empty;
+        _selectedCustomerId = Guid.Empty;
+    }
+
+    private void ShowSuccessModal()
+    {
+        showSuccessModal = true;
+    }
+
+    private void HideSuccessModal()
+    {
+        showSuccessModal = false;
+    }
+
+    private void ShowErrorModal()
+    {
+        showErrorModal = true;
+    }
+
+    private void HideErrorModal()
+    {
+        showErrorModal = false;
+    }
+
+  
+
+    private void ShowDeleteSuccessModal()
+    {
+        showDeleteSuccessModal = true;
+    }
+
+    private void HideDeleteSuccessModal()
+    {
+        showDeleteSuccessModal = false;
+    }
+
+
+}
